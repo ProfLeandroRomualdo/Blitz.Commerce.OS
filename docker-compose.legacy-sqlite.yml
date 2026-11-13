@@ -1,0 +1,31 @@
+# Cloud DEMO only. The app remains in demo mode and is not safe for real buyers.
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      DEMO_MODE: "true"
+      DEMO_API_KEY: "${DEMO_API_KEY:?set a strong key}"
+      PUBLIC_BASE_URL: "https://${DOMAIN:?set DNS domain}"
+      DATABASE_PATH: "/data/blitz.db"
+    volumes:
+      - blitz-data:/data
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: "${DOMAIN:?set DNS domain}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+volumes:
+  blitz-data:
+  caddy_data:
+  caddy_config:

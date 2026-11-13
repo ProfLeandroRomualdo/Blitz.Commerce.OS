@@ -1,0 +1,38 @@
+# Local-only demonstration. DO NOT expose this configuration publicly.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: blitz
+      POSTGRES_USER: blitz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blitz -d blitz"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+    ports:
+      - "127.0.0.1:5432:5432"
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8080"
+    environment:
+      DATABASE_URL: postgresql://blitz:${POSTGRES_PASSWORD}@db:5432/blitz
+      DEMO_MODE: "true"
+      DEMO_API_KEY: ${DEMO_API_KEY:?Set DEMO_API_KEY in .env}
+      PUBLIC_BASE_URL: http://localhost:8000
+      STRICT_UCP: "false"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 15
+volumes:
+  pgdata:
